@@ -47,7 +47,7 @@ def load_transactions(path, fmt):
         raise ValueError(f"unsupported format: {fmt}, should be csv or json")
     
     with open(path, 'r') as file:
-        if fmt is "csv":
+        if fmt == "csv":
             reader = csv.DictReader(file)
             return list(reader)
         elif fmt == "json":
@@ -61,8 +61,46 @@ def run_pipeline(config):
     config["output_path"]. Return the report dict as well.
     """
     # TODO: implement
+    transactions = load_transactions(config["input_path"], config["input_format"])
     
-    raise NotImplementedError("run_pipeline is not implemented yet")
+    n_transactions = len(transactions)
+    total_amount = 0.0
+    n_fraud = 0
+    n_high_value = 0
+    
+    threshold = float(config["high_value_threshold"])
+    
+    for txn in transactions:
+        amount = float(txn["amount"])
+        is_fraud_val = txn["is_fraud"]
+        if isinstance(is_fraud_val, str):
+            is_fraud = is_fraud_val.strip().lower() == "true"
+        else:
+            is_fraud = bool(is_fraud_val)
+            
+        total_amount += amount
+        
+        if is_fraud:
+            n_fraud += 1
+            
+        if amount >= threshold:
+            n_high_value += 1
+            
+    fraud_rate = (n_fraud / n_transactions) if n_transactions > 0 else 0.0
+    
+    report = {
+        "n_transactions": n_transactions,
+        "total_amount": total_amount,
+        "fraud_rate": fraud_rate,
+        "n_high_value": n_high_value,
+        "high_value_threshold": threshold
+    }
+    
+    with open(config["output_path"], 'w') as out_file:
+        json.dump(report, out_file, indent=4)
+        
+    return report
+
 
 
 def main():
