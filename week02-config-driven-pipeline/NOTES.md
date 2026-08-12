@@ -10,3 +10,4 @@
 <!-- What specifically was hardcoded in the original script, and what would
      have had to happen to change the threshold or switch formats before
      your refactor? -->
+The first script hardcoded the input path, the threshold, and the output path. To change the threshold or switch from CSV to JSON, we had to edit the Python code itself, save it, and rerun the script after the refactor, the values come from YAML config files
