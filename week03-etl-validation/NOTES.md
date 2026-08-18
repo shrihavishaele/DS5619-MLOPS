@@ -2,8 +2,8 @@
 
 **Student ID used with `generate_for_student.py`:**
 <!-- paste the --student-id value you used -->
-142301003
-
+student_id: 142301003
+seed: 3603207943
 
 ## Quarantine count vs. the 7 known injected problems
 
