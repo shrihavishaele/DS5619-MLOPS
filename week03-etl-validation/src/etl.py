@@ -25,7 +25,7 @@ KNOWN_CATEGORIES = {
 
 def build_expectation_suite():
     """The data contract for this dataset. Each entry says which expectation
-    function to run, and with what arguments. This is provided — read it to
+    function to run, and with what args. This is provided — read it to
     know exactly what your expectation functions in expectations.py need to
     handle correctly.
     """
@@ -53,8 +53,77 @@ def run_etl(config):
 
     Return the validation_report dict as well as writing it to disk.
     """
-    # TODO: implement
-    raise NotImplementedError
+    rows = extract(config["input_path"])
+
+    suite = build_expectation_suite()
+    all_violations = []
+    expectation_summary = []
+
+    for expectation_func, args in suite:
+        violations = expectation_func(rows, **args)
+        all_violations.extend(violations)
+
+        expectation_summary.append({
+            "expectation": expectation_func.__name__,
+            "column": args["column"],
+            "n_violations": len(violations),
+            "row_indices": [v.row_index for v in violations],
+            "violations": [
+                {
+                    "row_index": v.row_index,
+                    "column": v.column,
+                    "detail": v.detail,
+                }
+                for v in violations
+            ],
+        })
+
+    bad_row_indices = {v.row_index for v in all_violations}
+    clean_rows = []
+    quarantined_rows = []
+
+    for index, row in enumerate(rows):
+        if index in bad_row_indices:
+            quarantined_rows.append(row)
+        else:
+            clean_rows.append(row)
+
+    fieldnames = list(rows[0].keys()) if rows else []
+
+    for output_path, output_rows in [
+        (config["clean_output_path"], clean_rows),
+        (config["quarantine_output_path"], quarantined_rows),
+    ]:
+        directory = os.path.dirname(output_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
+        with open(output_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if fieldnames:
+                writer.writeheader()
+            writer.writerows(output_rows)
+
+    report = {
+        "input_path": config["input_path"],
+        "clean_output_path": config["clean_output_path"],
+        "quarantine_output_path": config["quarantine_output_path"],
+        "report_output_path": config["report_output_path"],
+        "n_rows_total": len(rows),
+        "n_rows_clean": len(clean_rows),
+        "n_rows_quarantined": len(quarantined_rows),
+        "expectations": expectation_summary,
+    }
+
+    directory = os.path.dirname(config["report_output_path"])
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+
+    with open(config["report_output_path"], "w") as f:
+        json.dump(report, f, indent=2)
+        f.write("\n")
+
+    return report
 
 
 def main():
