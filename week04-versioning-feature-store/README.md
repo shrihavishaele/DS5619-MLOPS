@@ -1,113 +1,125 @@
-# Lab 4 — Versioning, Feature Store & Lineage
+# Week 4: Versioning, Feature Store, and Lineage
 
-**Track A (tabular fraud-detection) · Week 4 · DS5619 Machine Learning Systems Operations**
+This folder contains the Week 4 lab for DS5619 Machine Learning Systems
+Operations. The lab builds a small, local feature store for a fraud-detection
+transaction feed. It uses only Python and JSON files, so the ideas can be
+examined without setting up an external service such as Feast or Hopsworks.
+
+## What This Lab Demonstrates
+
+The lab follows a transaction dataset through four steps:
+
+1. **Raw data versioning**: each input file is identified by its SHA-256
+	content hash. Running the same snapshot again returns the existing version
+	instead of creating a duplicate.
+2. **Feature engineering**: transactions are grouped by `card_id` to produce
+	transaction count, average amount, maximum amount, card-present percentage,
+	and the latest event time.
+3. **Feature-group versioning**: every registered feature group receives a new
+	version, so a later schema change never overwrites earlier features.
+4. **Lineage**: each feature-group manifest records which raw data version and
+	transformation produced it.
+
+## The v1 to v2 Schema Change
+
+The `data/` directory contains two revisions of the same upstream feed:
+
+| Revision | Amount field | Country field | Additional field |
+| --- | --- | --- | --- |
+| v1 | `amount` in major units | `country` | None |
+| v2 | `amount_minor_units` in cents | `country_code` | `device_fingerprint` |
+
+This is a breaking upstream change. The feature builder detects the schema
+from the row fields and converts v2 amounts from cents by dividing by 100.
+That conversion keeps v1 and v2 aggregate features comparable.
+
+## Folder Contents
+
+- `src/mini_feature_store.py`: implementation of raw snapshots, feature
+  construction, feature-group registration, and lineage lookup.
+- `src/run_pipeline.py`: complete driver that processes v1 and v2 in order.
+- `data/v1/transactions.csv`: first transaction schema revision.
+- `data/v2/transactions.csv`: breaking second schema revision.
+- `tests/test_smoke.py`: self-checks for the four functions and full pipeline.
+- `generate_for_student.py`: deterministically regenerates the data for a
+  student ID.
+- `.feature_store/`: JSON manifests and feature rows created by the pipeline.
+- `lineage_report.json`: combined lineage report for the registered versions.
+- `NOTES.md`: student ID and observations about the v1/v2 manifests.
 
 ## Setup
 
+From this folder, create and activate a virtual environment:
+
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python generate_for_student.py --student-id <your roll number or institute email>
+python -m venv .venv
 ```
 
-This overwrites `data/v1/transactions.csv` and `data/v2/transactions.csv` with
-records generated deterministically from your student ID — same shape as
-everyone else's, different actual values. 
+Windows PowerShell:
 
-**Record your `--student-id` value in `NOTES.md`.** The grader re-runs
-`generate_for_student.py` with the ID you recorded and diffs the result
-against what you committed.
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
+Linux or macOS:
 
-## Files
+```bash
+source .venv/bin/activate
+```
 
-- `src/mini_feature_store.py` — implement the four `# TODO` functions.
-- `src/run_pipeline.py` — complete driver script, runs your functions
-  against `data/v1/` then `data/v2/`. Don't edit.
-- `data/v1/transactions.csv`, `data/v2/transactions.csv` — your two schema
-  revisions of the same feed, generated above (don't hand-edit).
+Install the dependencies:
 
-## Background
+```bash
+pip install -r requirements.txt
+```
 
-`data/v1/transactions.csv` and `data/v2/transactions.csv` are two revisions of
-the same upstream transaction feed. Between v1 and v2, the upstream team made a
-**breaking schema change**: `country` was renamed to `country_code`, `amount`
-(float) became `amount_minor_units` (integer cents), and a new
-`device_fingerprint` field was added. This is deliberately the same kind of
-change Week 2/3 warned you real upstream systems make without notice.
+Regenerate the student-specific input data and record the same ID in `NOTES.md`:
 
-A correct versioning + feature store setup should handle this without anyone
-touching history: v1 stays exactly as it was recorded, and v2 becomes a new,
-separate version — of both the raw data AND the feature group built from it.
+```bash
+python generate_for_student.py --student-id <your-roll-number-or-email>
+```
 
-## Your task
+## Run the Pipeline
 
-**Part 1-4 — `src/mini_feature_store.py`** (four functions marked `# TODO`, each
-has a full docstring spec, ~45 min total)
-
-- `snapshot_raw_version(input_path, registry_dir)` — content-hash-based,
-  idempotent raw data versioning.
-- `build_features(rows)` — per-`card_id` aggregate features; must correctly
-  handle both the v1 and v2 schemas (detect which you're given, normalize
-  before aggregating).
-- `register_feature_group(name, feature_rows, source_version_id, registry_dir,
-  transform_version)` — writes a new feature group version + its lineage
-  manifest; must never overwrite a previous version.
-- `get_lineage(name, fg_version_id, registry_dir)` — reads a feature group's
-  manifest and its source raw version's manifest, returns the combined chain.
+Run this command from the `week04-versioning-feature-store` directory:
 
 ```bash
 python src/run_pipeline.py
 ```
 
-This runs your four functions against v1, then v2, checks that re-snapshotting
-v1 is idempotent, and writes `lineage_report.json` at the repo root
-(`src/run_pipeline.py` is complete, don't edit it).
+The driver will:
 
-## Self-check
+1. Snapshot the v1 CSV and build the v1 feature group.
+2. Snapshot the v2 CSV and build a separate feature-group version.
+3. Verify that snapshotting the unchanged v1 CSV is idempotent.
+4. Write lineage information to `lineage_report.json`.
+
+On a clean registry, the first run creates raw versions `v1` and `v2`, and
+feature-group versions `v1` and `v2`. Running the pipeline again should keep
+the raw IDs for identical files but create new feature-group versions because
+feature-group registration is intentionally append-only.
+
+## Run the Tests
 
 ```bash
 pytest tests/ -q
 ```
 
-This is a self-check, not the grader.
+The tests cover content-hash idempotency, changed-file detection, both input
+schemas, feature-group non-overwrite behavior, lineage lookup, and the full
+pipeline.
 
-## Deliverables (what you commit)
+## Submission Checklist
 
-- `src/mini_feature_store.py`, completed.
-- The `.feature_store/` directory your pipeline run produced (it's small —
-  JSON manifests only, no raw data copies of meaningful size).
-- `lineage_report.json`.
-- A short `NOTES.md`: the `--student-id` value you used (required — see above), plus
-  what's different between the v1 and v2 feature group's `manifest.json` (look at
-  both), and why does `build_features` need to treat `amount_minor_units` differently
-  from `amount` for the aggregates to be comparable across versions?
+Before submitting, confirm that:
 
+- `NOTES.md` contains the student ID used to generate the data.
+- The committed CSV files match that student ID.
+- `.feature_store/` contains the generated JSON registry artifacts.
+- `lineage_report.json` is present.
+- `python src/run_pipeline.py` completes successfully.
+- `pytest tests/ -q` passes.
 
-## Grading checklist
-
-- [ ] `data/` matches what `generate_for_student.py --student-id <NOTES.md value>`
-      actually produces.
-- [ ] `snapshot_raw_version` is genuinely idempotent (same content → same
-      version id, verified against a held-out file, not just the provided one).
-- [ ] `build_features` produces correct aggregates for both schemas, and the
-      v2 amounts are correctly converted from minor units before aggregating.
-- [ ] `register_feature_group` never overwrites an existing version — running
-      the pipeline twice results in v1 and v2 (not just v1 again).
-- [ ] `get_lineage` correctly resolves a feature group back to its raw source
-      manifest.
-- [ ] `NOTES.md` shows you actually compared the v1 and v2 manifests.
-- [ ] Meaningful commit history and a working README.
-
-## Submission
-
-```bash
-git add -A
-git commit -m "Week 4: mini feature store + lineage"
-git tag week04-submit
-git push origin main --tags
-```
-
-Source: this lab operationalizes the Data Versioning, Feature Store (FTI
-architecture, feature groups), and Data Lineage content from the Week 4
-lecture deck.
+The implementation is intentionally small, but the design mirrors production
+principles: immutable data versions, explicit schema handling, reproducible
+feature transformations, and traceable lineage.
