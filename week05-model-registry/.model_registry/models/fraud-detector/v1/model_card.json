@@ -1,0 +1,15 @@
+{
+  "name": "fraud-detector",
+  "version_id": "v1",
+  "intended_use": "This model flags potentially fraudulent card transactions by applying a learned amount threshold. It is intended for use by the bank's automated fraud-detection pipeline, which routes flagged transactions to a human analyst for manual review before any hold is placed.",
+  "training_data": "Trained on the card_activity feature group (v1) from Week 4, which contains historical labeled card transactions with amount, merchant category, and time-of-day features. Coverage is limited to the issuing bank's own transaction history and may not generalize to other card networks or geographies.",
+  "limitations": "As a single amount-threshold classifier, this model cannot detect fraud patterns that do not involve unusually high transaction amounts \u00e2\u20ac\u201d it will miss low-amount fraud, structured or split transactions designed to stay below the threshold, and account-takeover fraud where spending patterns remain within normal dollar ranges.",
+  "ethical_considerations": "False positives block legitimate customer transactions, causing inconvenience and potential financial harm (e.g., declined emergency purchases); the cost falls directly on the cardholder. False negatives allow fraudulent charges through, where the financial cost falls on the bank or merchant. Because the threshold is amount-based, it may disproportionately flag customers who routinely make large purchases, introducing a socioeconomic bias in who gets flagged.",
+  "metrics": {
+    "precision": 0.494,
+    "recall": 0.541,
+    "f1": 0.516,
+    "auc": 0.567
+  },
+  "created_at": "2026-09-02T16:00:43.328233+00:00"
+}
