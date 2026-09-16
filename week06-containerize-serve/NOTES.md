@@ -25,6 +25,6 @@ The `week6-detector` image is **234 MB** on disk (57.5 MB compressed content siz
      src/mock_detector.py were swapped for a real torch-based checkpoint?
      (Think about what that does to build time and image size.) -->
 
-The single biggest change would be to use a **multi-stage build**. Swapping in a real torch-based checkpoint (e.g. YOLOv12 via `ultralytics`) would add PyTorch (~2 GB), CUDA runtime libraries, and the model weights themselves, easily ballooning the image from ~234 MB to 5–8+ GB and build times from seconds to many minutes.
+The most important change is using a **multi-stage build**. Real models like YOLOv12 (with PyTorch and CUDA) increase the image size from ~234 MB to 5-8+ GB.
 
-A multi-stage Dockerfile separates the *build* stage (where you install torch, compile any C extensions, and download model weights) from the *runtime* stage (where you copy in only the installed packages and weights the server actually needs). This avoids shipping pip caches, build tools, compiler toolchains, and intermediate build artifacts in the final image. You'd also switch the base image from `python:3.12-slim` to an NVIDIA CUDA runtime image (e.g. `nvidia/cuda:12.x-runtime-ubuntu22.04`) if GPU inference is needed, and pin the exact PyTorch wheel URL for the target CUDA version to avoid pulling unnecessary CPU/GPU variants.
+A multi-stage Dockerfile separates the build stage (installing dependencies and weights) from the runtime stage (running the server). This keeps the final image small by removing build tools and caches. For GPU support, you should also switch to an NVIDIA CUDA runtime base image and install the specific PyTorch wheel for that CUDA version.

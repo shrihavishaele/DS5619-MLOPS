@@ -12,6 +12,8 @@ built image ID/tag):
 
 ```
 $ docker build -t week6-detector .
+ => => naming to docker.io/library/week6-detector:latest                   0.0s 
+ => => unpacking to docker.io/library/week6-detector:latest                0.0s 
 ```
 
 ## Run
