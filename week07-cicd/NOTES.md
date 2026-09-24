@@ -9,6 +9,4 @@ Wrote 29 annotations -> D:\DS5619-MLOPS\week07-cicd\data\fixtures/_annotations.c
 
 ## Why gate integration-test on needs: [lint, unit-test]?
 
-<!-- Why does integration-test need needs: [lint, unit-test] instead of
-     just running in parallel with them — what's the actual cost being
-     avoided? -->
+To save time and resources. There is no point spending several minutes building a Docker container for the integration test if the basic code syntax (lint) or core logic (unit tests) is already broken locally!
