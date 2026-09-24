@@ -19,6 +19,9 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: week07-cicd
     steps:
       - uses: actions/checkout@v4
       # TODO: set up Python (actions/setup-python@v5, pick a python-version)
@@ -34,6 +37,9 @@ jobs:
 
   unit-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: week07-cicd
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -48,6 +54,9 @@ jobs:
 
   integration-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: week07-cicd
     # TODO: this job should only run if both lint and unit-test succeeded —
     # add a `needs:` key listing both job names.
     needs: ["lint", "unit-test"]
