@@ -1,9 +1,12 @@
 # NOTES.md — Week 10: Fairness and Robustness Audit
 
 **Student ID used with `generate_for_student.py`:**
-<!-- paste the --student-id value you used -->
-142301003
+student_id: 142301003
+seed: 410824825
+Wrote 60 images across 2 camera profiles -> D:\DS5619-MLOPS\week10-fairness-audit\data\fixtures
+Wrote 243 annotations -> D:\DS5619-MLOPS\week10-fairness-audit\data\fixtures/_annotations.coco.json
 
+---
 
 ## Which classes got flagged?
 
